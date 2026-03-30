@@ -1,7 +1,7 @@
 # Riehemann IT – Status Page
 
 Static status page for Riehemann IT-Consulting that shows the health of monitored
-services on two servers.
+services on two servers. See https://status.riehemann.net/
 
 ---
 
@@ -18,7 +18,7 @@ services on two servers.
 
 ---
 
-## Part 1 – Cron script (`scripts/monit_to_json.sh`)
+## Cron script (`scripts/monit_to_json.sh`)
 
 The script runs `monit summary -B`, parses the plain-text output into a JSON
 structure, appends a UTC timestamp and writes the result to
@@ -36,24 +36,6 @@ structure, appends a UTC timestamp and writes the result to
    */5 * * * * /path/to/scripts/monit_to_json.sh
    ```
 
-3. Ensure the output directory exists and is writable by the cron user:
-   ```bash
-   mkdir -p /var/www/default/htdocs
-   ```
-
-### Output format
-
-```json
-{
-  "date": "2026-03-30T14:00:00Z",
-  "services": [
-    { "name": "nginx",        "status": "Running",       "type": "Process" },
-    { "name": "mysql",        "status": "Not monitored", "type": "Process" },
-    { "name": "system_host",  "status": "Running",       "type": "System"  }
-  ]
-}
-```
-
 ### Requirements
 
 - `monit` must be installed and accessible to the cron user
@@ -61,7 +43,7 @@ structure, appends a UTC timestamp and writes the result to
 
 ---
 
-## Part 2 – Static status page (GitHub Pages)
+## Static status page (GitHub Pages)
 
 `index.html` is a self-contained status page that:
 
@@ -70,9 +52,3 @@ structure, appends a UTC timestamp and writes the result to
 - Displays each service with a colour-coded status badge
 - Auto-refreshes every **5 minutes** (matching the cron interval)
 - Shows the timestamp from the last generated JSON file
-
-### GitHub Pages setup
-
-1. In the repository's **Settings → Pages** section, set the source to
-   **Deploy from a branch → `main` / `(root)`**.
-2. The page will be available at `https://status.riehemann.net/`
