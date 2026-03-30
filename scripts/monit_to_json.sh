@@ -39,13 +39,37 @@ fi
 #
 
 echo "$MONIT_OUTPUT" | python3 -c "
-import json, sys
+import json, sys, re
 
 timestamp   = '$TIMESTAMP'
 output_file = '$OUTPUT_FILE'
 
+# Mapping: lowercase process name -> group label
+GROUP_MAP = {
+    'apache':            'Web',
+    'apache2':           'Web',
+    'spamd':             'E-Mail',
+    'postfix':           'E-Mail',
+    'postgrey':          'E-Mail',
+    'dovecot':           'E-Mail',
+    'proftpd':           'FTP',
+    'mysqld':            'Datenbank',
+    'clamav':            'Virenscanner',
+    'freshclam':         'Virenscanner',
+    'clamav-freshclam':  'Virenscanner',
+    'liveconfig':        'Liveconfig',
+}
+
+GOOD_STATUSES = {'running', 'ok'}
+
+def status_priority(status):
+    \"\"\"Lower number = better; non-OK statuses sort higher so they win.\"\"\"
+    return 0 if status.lower() in GOOD_STATUSES else 1
+
 raw = sys.stdin.read()
-services = []
+
+# group_status maps group_label -> worst status seen so far
+group_status = {}
 
 for line in raw.splitlines():
     s = line.strip()
@@ -59,14 +83,30 @@ for line in raw.splitlines():
         continue
 
     # Fields are separated by two or more spaces
-    parts = [p for p in s.split('  ') if p.strip()]
+    parts = [p for p in re.split(r'  +', s) if p.strip()]
     if len(parts) < 2:
         continue
 
-    services.append({
-        'name':   parts[0].strip().strip(\"'\\\"\"),
-        'status': parts[1].strip(),
-    })
+    name   = parts[0].strip().strip(\"'\\\"\")
+    status = parts[1].strip()
+    stype  = parts[2].strip().lower() if len(parts) >= 3 else ''
+
+    # Skip filesystem entries
+    if stype in ('file', 'directory'):
+        continue
+
+    group = GROUP_MAP.get(name.lower(), 'System')
+
+    # Keep the worst (non-OK) status for the group
+    if group not in group_status or status_priority(status) > status_priority(group_status[group]):
+        group_status[group] = status
+
+# Preserve a deterministic order: known groups first, then System
+GROUP_ORDER = ['Web', 'E-Mail', 'FTP', 'Datenbank', 'Virenscanner', 'Liveconfig', 'System']
+services = []
+for label in GROUP_ORDER:
+    if label in group_status:
+        services.append({'name': label, 'status': group_status[label]})
 
 payload = {'date': timestamp, 'services': services}
 with open(output_file, 'w') as fh:
