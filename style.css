@@ -1,0 +1,276 @@
+/* =========================================================
+   Riehemann IT – Status Page  (style.css)
+   Design inspired by riehemann-it.de
+   ========================================================= */
+
+:root {
+  --color-bg:          #f4f6f9;
+  --color-surface:     #ffffff;
+  --color-border:      #e0e4ea;
+  --color-primary:     #1a3a5c;   /* dark navy – brand colour */
+  --color-accent:      #2980b9;   /* mid-blue accent */
+  --color-text:        #2c3e50;
+  --color-text-muted:  #7f8c9a;
+  --color-ok:          #27ae60;
+  --color-warning:     #f39c12;
+  --color-error:       #e74c3c;
+  --color-unknown:     #95a5a6;
+  --radius:            6px;
+  --shadow:            0 2px 8px rgba(0,0,0,.08);
+  --font:              'Segoe UI', Arial, sans-serif;
+}
+
+/* Reset & base */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background:  var(--color-bg);
+  color:       var(--color-text);
+  font-size:   15px;
+  line-height: 1.5;
+  min-height:  100vh;
+}
+
+a { color: var(--color-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Header ──────────────────────────────────────────────── */
+header {
+  background: var(--color-primary);
+  color:      #fff;
+  padding:    0 24px;
+}
+
+.header-inner {
+  max-width:      960px;
+  margin:         0 auto;
+  display:        flex;
+  align-items:    center;
+  justify-content: space-between;
+  padding:        18px 0;
+  gap:            16px;
+  flex-wrap:      wrap;
+}
+
+.logo {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  font-size:   20px;
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+
+.logo-icon {
+  width:  36px;
+  height: 36px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.header-subtitle {
+  font-size:  13px;
+  opacity:    .75;
+  font-weight: 400;
+}
+
+.header-meta {
+  font-size:  12px;
+  opacity:    .7;
+  text-align: right;
+}
+
+#refresh-countdown {
+  display:     inline-block;
+  min-width:   24px;
+  font-weight: 700;
+  color:       #90caf9;
+}
+
+/* ── Main layout ─────────────────────────────────────────── */
+main {
+  max-width: 960px;
+  margin:    0 auto;
+  padding:   32px 24px 48px;
+}
+
+/* ── Overall system banner ───────────────────────────────── */
+.system-banner {
+  background:    var(--color-surface);
+  border:        1px solid var(--color-border);
+  border-left:   4px solid var(--color-ok);
+  border-radius: var(--radius);
+  padding:       14px 20px;
+  display:       flex;
+  align-items:   center;
+  gap:           12px;
+  margin-bottom: 32px;
+  box-shadow:    var(--shadow);
+  font-size:     15px;
+  font-weight:   600;
+}
+
+.system-banner.degraded { border-left-color: var(--color-warning); }
+.system-banner.outage   { border-left-color: var(--color-error);   }
+
+.banner-dot {
+  width:         14px;
+  height:        14px;
+  border-radius: 50%;
+  background:    var(--color-ok);
+  flex-shrink:   0;
+}
+.system-banner.degraded .banner-dot { background: var(--color-warning); }
+.system-banner.outage   .banner-dot { background: var(--color-error);   }
+
+/* ── Server sections ─────────────────────────────────────── */
+.servers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 680px) {
+  .servers-grid { grid-template-columns: 1fr; }
+}
+
+.server-card {
+  background:    var(--color-surface);
+  border:        1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow:    var(--shadow);
+  overflow:      hidden;
+}
+
+.server-header {
+  background:  var(--color-primary);
+  color:       #fff;
+  padding:     12px 18px;
+  display:     flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.server-name {
+  font-weight: 700;
+  font-size:   15px;
+}
+
+.server-ts {
+  font-size:  11px;
+  opacity:    .65;
+}
+
+.server-body { padding: 0; }
+
+/* ── Loading / error states ──────────────────────────────── */
+.state-msg {
+  padding:    24px 18px;
+  text-align: center;
+  color:      var(--color-text-muted);
+  font-size:  13px;
+  display:    flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.spinner {
+  width:  28px;
+  height: 28px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-icon { font-size: 28px; }
+
+/* ── Service table ───────────────────────────────────────── */
+.service-table {
+  width:           100%;
+  border-collapse: collapse;
+  font-size:       13.5px;
+}
+
+.service-table th {
+  background:    #f8f9fb;
+  text-align:    left;
+  padding:       8px 14px;
+  font-size:     11px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color:         var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.service-table td {
+  padding:       9px 14px;
+  border-bottom: 1px solid #f0f2f5;
+  vertical-align: middle;
+}
+
+.service-table tr:last-child td { border-bottom: none; }
+.service-table tr:hover td { background: #fafbfd; }
+
+/* ── Status badge ────────────────────────────────────────── */
+.badge {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           5px;
+  padding:       2px 9px;
+  border-radius: 12px;
+  font-size:     11.5px;
+  font-weight:   600;
+  white-space:   nowrap;
+}
+
+.badge::before {
+  content:       '';
+  display:       inline-block;
+  width:         7px;
+  height:        7px;
+  border-radius: 50%;
+}
+
+.badge-ok      { background: #eafaf1; color: #1e8449; }
+.badge-ok::before      { background: var(--color-ok); }
+
+.badge-warning { background: #fef9e7; color: #b7770d; }
+.badge-warning::before { background: var(--color-warning); }
+
+.badge-error   { background: #fdedec; color: #cb4335; }
+.badge-error::before   { background: var(--color-error); }
+
+.badge-unknown { background: #f2f3f4; color: #626567; }
+.badge-unknown::before { background: var(--color-unknown); }
+
+/* ── Type pill ───────────────────────────────────────────── */
+.type-pill {
+  display:        inline-block;
+  padding:        1px 8px;
+  border-radius:  10px;
+  font-size:      11px;
+  background:     #eef2f7;
+  color:          var(--color-text-muted);
+  border:         1px solid var(--color-border);
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+footer {
+  text-align:  center;
+  padding:     16px;
+  font-size:   12px;
+  color:       var(--color-text-muted);
+  border-top:  1px solid var(--color-border);
+  margin-top:  8px;
+}
