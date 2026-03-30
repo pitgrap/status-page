@@ -75,5 +75,4 @@ structure, appends a UTC timestamp and writes the result to
 
 1. In the repository's **Settings → Pages** section, set the source to
    **Deploy from a branch → `main` / `(root)`**.
-2. The page will be available at `https://<user>.github.io/status-page/`
-   (or your custom domain).
+2. The page will be available at `https://status.riehemann.net/`
