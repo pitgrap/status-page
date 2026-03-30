@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riehemann IT – System Status</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">&#9781;</div>
+      <div>
+        Riehemann IT-Consulting
+        <div class="header-subtitle">System Status</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      Auto-refresh in <span id="refresh-countdown">300</span>s
+      <br>
+      <a href="#" onclick="fetchAll();return false;" style="color:#90caf9">Refresh now</a>
+    </div>
+  </div>
+</header>
+
+<!-- ── Main ─────────────────────────────────────────────── -->
+<main>
+
+  <!-- Overall system banner -->
+  <div class="system-banner" id="system-banner">
+    <div class="banner-dot"></div>
+    <span id="banner-text">Checking system status…</span>
+  </div>
+
+  <!-- Two-column server grid -->
+  <div class="servers-grid">
+
+    <!-- Server 1 -->
+    <div class="server-card" id="card-server1">
+      <div class="server-header">
+        <span class="server-name">server1.riehemann.net</span>
+        <span class="server-ts" id="ts-server1">—</span>
+      </div>
+      <div class="server-body" id="body-server1">
+        <div class="state-msg"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+
+    <!-- Server 2 -->
+    <div class="server-card" id="card-server2">
+      <div class="server-header">
+        <span class="server-name">server2.riehemann.net</span>
+        <span class="server-ts" id="ts-server2">—</span>
+      </div>
+      <div class="server-body" id="body-server2">
+        <div class="state-msg"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  &copy; <span id="year"></span> Riehemann IT-Consulting &nbsp;|&nbsp;
+  Status data refreshed every 5 minutes via cron
+</footer>
+
+<script>
+/* =========================================================
+   Status page – JavaScript
+   Fetches /status.json from each server and renders a
+   service table inside each server card.
+   ========================================================= */
+
+const SERVERS = [
+  { id: 'server1', url: 'https://server1.riehemann.net/status.json', label: 'server1.riehemann.net' },
+  { id: 'server2', url: 'https://server2.riehemann.net/status.json', label: 'server2.riehemann.net' },
+];
+
+const REFRESH_INTERVAL = 300; // seconds
+let countdown = REFRESH_INTERVAL;
+
+// ── Status classification ─────────────────────────────────
+
+const STATUS_MAP = {
+  running:        'ok',
+  accessible:     'ok',
+  online:         'ok',
+  ok:             'ok',
+  'not monitored':'warning',
+  'waiting':      'warning',
+  initializing:   'warning',
+  failed:         'error',
+  'does not exist':'error',
+  offline:        'error',
+  error:          'error',
+  stopped:        'error',
+};
+
+function classifyStatus(rawStatus) {
+  if (!rawStatus) return 'unknown';
+  const key = rawStatus.trim().toLowerCase();
+  return STATUS_MAP[key] || (key.includes('ok') || key.includes('run') ? 'ok' : 'unknown');
+}
+
+function badgeHtml(rawStatus) {
+  const cls = classifyStatus(rawStatus);
+  return `<span class="badge badge-${cls}">${escHtml(rawStatus)}</span>`;
+}
+
+// ── Helpers ───────────────────────────────────────────────
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatDate(isoString) {
+  if (!isoString) return '—';
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' });
+  } catch (e) {
+    return isoString;
+  }
+}
+
+// ── Render helpers ────────────────────────────────────────
+
+function renderTable(services) {
+  if (!services || services.length === 0) {
+    return '<div class="state-msg">No services reported.</div>';
+  }
+  const rows = services.map(svc => `
+    <tr>
+      <td>${escHtml(svc.name || '—')}</td>
+      <td>${badgeHtml(svc.status || 'unknown')}</td>
+      <td><span class="type-pill">${escHtml(svc.type || '—')}</span></td>
+    </tr>`).join('');
+  return `
+    <table class="service-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Status</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderError(message) {
+  return `<div class="state-msg">
+    <span class="error-icon">&#9888;</span>
+    <span>${escHtml(message)}</span>
+  </div>`;
+}
+
+// ── Fetch a single server ─────────────────────────────────
+
+async function fetchServer(server) {
+  const bodyEl = document.getElementById('body-' + server.id);
+  const tsEl   = document.getElementById('ts-'   + server.id);
+
+  try {
+    const response = await fetch(server.url, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+
+    tsEl.textContent = data.date ? 'Updated: ' + formatDate(data.date) : '';
+
+    if (data.error) {
+      bodyEl.innerHTML = renderError('Server reported: ' + data.error);
+      return { ok: false };
+    }
+
+    bodyEl.innerHTML = renderTable(data.services);
+
+    // Count non-ok services for banner
+    const nonOk = (data.services || []).filter(
+      s => classifyStatus(s.status) !== 'ok'
+    ).length;
+    return { ok: true, nonOk };
+
+  } catch (err) {
+    tsEl.textContent = '';
+    bodyEl.innerHTML = renderError('Could not load data: ' + err.message);
+    return { ok: false };
+  }
+}
+
+// ── Fetch all servers & update banner ────────────────────
+
+async function fetchAll() {
+  const results = await Promise.all(SERVERS.map(fetchServer));
+  updateBanner(results);
+}
+
+function updateBanner(results) {
+  const banner   = document.getElementById('system-banner');
+  const bannerTxt = document.getElementById('banner-text');
+  const dot      = banner.querySelector('.banner-dot');
+
+  const allOk    = results.every(r => r.ok && r.nonOk === 0);
+  const anyError = results.some(r => !r.ok);
+  const totalNonOk = results.reduce((sum, r) => sum + (r.nonOk || 0), 0);
+
+  banner.className   = 'system-banner';
+  dot.style.background = '';
+
+  if (anyError) {
+    banner.classList.add('outage');
+    bannerTxt.textContent = 'One or more servers could not be reached.';
+  } else if (!allOk) {
+    banner.classList.add('degraded');
+    bannerTxt.textContent =
+      `${totalNonOk} service${totalNonOk !== 1 ? 's' : ''} need attention.`;
+  } else {
+    bannerTxt.textContent = 'All systems operational.';
+  }
+}
+
+// ── Countdown & auto-refresh ──────────────────────────────
+
+function startCountdown() {
+  const el = document.getElementById('refresh-countdown');
+  countdown = REFRESH_INTERVAL;
+  el.textContent = countdown;
+
+  const timer = setInterval(() => {
+    countdown--;
+    el.textContent = countdown;
+    if (countdown <= 0) {
+      clearInterval(timer);
+      fetchAll().then(startCountdown);
+    }
+  }, 1000);
+}
+
+// ── Init ──────────────────────────────────────────────────
+
+document.getElementById('year').textContent = new Date().getFullYear();
+fetchAll().then(startCountdown);
+</script>
+</body>
+</html>
