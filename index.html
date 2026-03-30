@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,13 +15,8 @@
       <div class="logo-icon">&#9781;</div>
       <div>
         Riehemann IT-Consulting
-        <div class="header-subtitle">System Status</div>
+        <div class="header-subtitle">System-Status</div>
       </div>
-    </div>
-    <div class="header-meta">
-      Auto-refresh in <span id="refresh-countdown">300</span>s
-      <br>
-      <a href="#" onclick="fetchAll();return false;" style="color:#90caf9">Refresh now</a>
     </div>
   </div>
 </header>
@@ -32,7 +27,7 @@
   <!-- Overall system banner -->
   <div class="system-banner" id="system-banner">
     <div class="banner-dot"></div>
-    <span id="banner-text">Checking system status…</span>
+    <span id="banner-text">Systemstatus wird geprüft…</span>
   </div>
 
   <!-- Two-column server grid -->
@@ -45,7 +40,7 @@
         <span class="server-ts" id="ts-server1">—</span>
       </div>
       <div class="server-body" id="body-server1">
-        <div class="state-msg"><div class="spinner"></div>Loading…</div>
+        <div class="state-msg"><div class="spinner"></div>Wird geladen…</div>
       </div>
     </div>
 
@@ -56,7 +51,7 @@
         <span class="server-ts" id="ts-server2">—</span>
       </div>
       <div class="server-body" id="body-server2">
-        <div class="state-msg"><div class="spinner"></div>Loading…</div>
+        <div class="state-msg"><div class="spinner"></div>Wird geladen…</div>
       </div>
     </div>
 
@@ -65,7 +60,8 @@
 
 <footer>
   &copy; <span id="year"></span> Riehemann IT-Consulting &nbsp;|&nbsp;
-  Status data refreshed every 5 minutes via cron
+  <a href="https://www.riehemann-it.de/impressum/">Impressum</a> &nbsp;|&nbsp;
+  <a href="https://www.riehemann-it.de/datenschutz/">Datenschutz</a>
 </footer>
 
 <script>
@@ -81,9 +77,15 @@ const SERVERS = [
 ];
 
 const REFRESH_INTERVAL = 300; // seconds
-let countdown = REFRESH_INTERVAL;
 
 // ── Status classification ─────────────────────────────────
+
+const STATUS_DISPLAY = {
+  ok:      'OK',
+  warning: 'Warnung',
+  error:   'Fehler',
+  unknown: 'Unbekannt',
+};
 
 const STATUS_MAP = {
   running:        'ok',
@@ -108,7 +110,7 @@ function classifyStatus(rawStatus) {
 
 function badgeHtml(rawStatus) {
   const cls = classifyStatus(rawStatus);
-  return `<span class="badge badge-${cls}">${escHtml(rawStatus)}</span>`;
+  return `<span class="badge badge-${cls}">${STATUS_DISPLAY[cls]}</span>`;
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -125,7 +127,7 @@ function formatDate(isoString) {
   if (!isoString) return '—';
   try {
     const d = new Date(isoString);
-    return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' });
+    return d.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'medium' });
   } catch (e) {
     return isoString;
   }
@@ -135,21 +137,19 @@ function formatDate(isoString) {
 
 function renderTable(services) {
   if (!services || services.length === 0) {
-    return '<div class="state-msg">No services reported.</div>';
+    return '<div class="state-msg">Keine Dienste gemeldet.</div>';
   }
   const rows = services.map(svc => `
     <tr>
       <td>${escHtml(svc.name || '—')}</td>
       <td>${badgeHtml(svc.status || 'unknown')}</td>
-      <td><span class="type-pill">${escHtml(svc.type || '—')}</span></td>
     </tr>`).join('');
   return `
     <table class="service-table">
       <thead>
         <tr>
-          <th>Service</th>
+          <th>Dienst</th>
           <th>Status</th>
-          <th>Type</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -176,10 +176,10 @@ async function fetchServer(server) {
     }
     const data = await response.json();
 
-    tsEl.textContent = data.date ? 'Updated: ' + formatDate(data.date) : '';
+    tsEl.textContent = data.date ? 'Aktualisiert: ' + formatDate(data.date) : '';
 
     if (data.error) {
-      bodyEl.innerHTML = renderError('Server reported: ' + data.error);
+      bodyEl.innerHTML = renderError('Server meldete: ' + data.error);
       return { ok: false };
     }
 
@@ -193,7 +193,7 @@ async function fetchServer(server) {
 
   } catch (err) {
     tsEl.textContent = '';
-    bodyEl.innerHTML = renderError('Could not load data: ' + err.message);
+    bodyEl.innerHTML = renderError('Daten konnten nicht geladen werden: ' + err.message);
     return { ok: false };
   }
 }
@@ -219,27 +219,24 @@ function updateBanner(results) {
 
   if (anyError) {
     banner.classList.add('outage');
-    bannerTxt.textContent = 'One or more servers could not be reached.';
+    bannerTxt.textContent = 'Ein oder mehrere Server konnten nicht erreicht werden.';
   } else if (!allOk) {
     banner.classList.add('degraded');
     bannerTxt.textContent =
-      `${totalNonOk} service${totalNonOk !== 1 ? 's' : ''} need attention.`;
+      `${totalNonOk} Dienst${totalNonOk !== 1 ? 'e benötigen' : ' benötigt'} Aufmerksamkeit.`;
   } else {
-    bannerTxt.textContent = 'All systems operational.';
+    bannerTxt.textContent = 'Alle Systeme betriebsbereit.';
   }
 }
 
 // ── Countdown & auto-refresh ──────────────────────────────
 
 function startCountdown() {
-  const el = document.getElementById('refresh-countdown');
-  countdown = REFRESH_INTERVAL;
-  el.textContent = countdown;
+  let remaining = REFRESH_INTERVAL;
 
   const timer = setInterval(() => {
-    countdown--;
-    el.textContent = countdown;
-    if (countdown <= 0) {
+    remaining--;
+    if (remaining <= 0) {
       clearInterval(timer);
       fetchAll().then(startCountdown);
     }

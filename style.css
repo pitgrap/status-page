@@ -80,18 +80,6 @@ header {
   font-weight: 400;
 }
 
-.header-meta {
-  font-size:  12px;
-  opacity:    .7;
-  text-align: right;
-}
-
-#refresh-countdown {
-  display:     inline-block;
-  min-width:   24px;
-  font-weight: 700;
-  color:       #90caf9;
-}
 
 /* ── Main layout ─────────────────────────────────────────── */
 main {
@@ -254,16 +242,6 @@ main {
 .badge-unknown { background: #f2f3f4; color: #626567; }
 .badge-unknown::before { background: var(--color-unknown); }
 
-/* ── Type pill ───────────────────────────────────────────── */
-.type-pill {
-  display:        inline-block;
-  padding:        1px 8px;
-  border-radius:  10px;
-  font-size:      11px;
-  background:     #eef2f7;
-  color:          var(--color-text-muted);
-  border:         1px solid var(--color-border);
-}
 
 /* ── Footer ──────────────────────────────────────────────── */
 footer {

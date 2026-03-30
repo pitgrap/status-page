@@ -66,7 +66,6 @@ for line in raw.splitlines():
     services.append({
         'name':   parts[0].strip().strip(\"'\\\"\"),
         'status': parts[1].strip(),
-        'type':   parts[2].strip() if len(parts) > 2 else 'unknown',
     })
 
 payload = {'date': timestamp, 'services': services}
